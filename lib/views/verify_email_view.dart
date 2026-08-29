@@ -23,6 +23,18 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
             },
             child: Text('Send email verification'),
           ),
+          // Sign Out wala yahan hai
+          TextButton(
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/login/', (route) => false);
+              }
+            },
+            child: const Text('Sign Out'),
+          ),
         ],
       ),
     );

@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'dart:developer' as devtools show log;
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -29,9 +32,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login Page'),
-      ),
+      appBar: AppBar(title: const Text('Login Page')),
       body: Column(
         children: [
           TextField(
@@ -51,21 +52,28 @@ class _LoginViewState extends State<LoginView> {
               try {
                 final email = _email.text;
                 final password = _password.text;
-                final userCredential = await FirebaseAuth.instance
-                    .signInWithEmailAndPassword(email: email, password: password);
-                print(userCredential);
-                print('Loign Successful');
+                await FirebaseAuth.instance
+                    .signInWithEmailAndPassword(
+                      email: email,
+                      password: password,
+                    );
+                devtools.log('Login Successful');
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/notes/',
+                (route) => false,
+                );
               } on FirebaseAuthException catch (e) {
                 if (e.code == 'user-not-found' ||
                     e.code == 'invalid-credential') {
-                  print("User not found");
+                  devtools.log("User not found");
                 } else if (e.code == 'wrong-password') {
-                  print("wrong password");
+                  devtools.log("wrong password");
                 } else {
-                  print("Error code ${e.code}");
+                  devtools.log("Error code ${e.code}");
                 }
               } catch (e) {
-                print("Something went wrong $e");
+                devtools.log("Something went wrong $e");
               }
             },
             child: Text('Login'),
