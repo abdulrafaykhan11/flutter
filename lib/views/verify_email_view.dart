@@ -38,7 +38,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                   context,
                 ).pushNamedAndRemoveUntil(loginRoutes, (route) => false);
               }
-            },
+        },
             child: const Text('Sign Out'),
           ),
           TextButton(
