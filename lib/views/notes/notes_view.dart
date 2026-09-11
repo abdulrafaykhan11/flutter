@@ -4,6 +4,7 @@ import 'package:mynotes/enums/menu_action.dart';
 import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/services/crud/notes_Service.dart';
 import 'package:mynotes/views/notes/new_note_view.dart';
+import 'package:sqflite/sqflite.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -20,12 +21,6 @@ class _NotesViewState extends State<NotesView> {
   void initState() {
     _notesService = NotesService();
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    _notesService.close();
-    super.dispose();
   }
 
   @override
@@ -76,7 +71,25 @@ class _NotesViewState extends State<NotesView> {
                   switch (snapshot.connectionState) {
                     case ConnectionState.waiting:
                     case ConnectionState.active:
-                      return const Text('Waiting...');
+                      if (snapshot.hasData) {
+                        final allNotes = snapshot.data as List<DatabaseNote>;
+                        return ListView.builder(
+                          itemCount: allNotes.length,
+                          itemBuilder: (context, index) {
+                            final notes = allNotes[index];
+                            return ListTile(
+                              title: Text(
+                                notes.text,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        return CircularProgressIndicator();
+                      }
                     default:
                       return const CircularProgressIndicator();
                   }
