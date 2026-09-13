@@ -4,9 +4,7 @@ import 'package:mynotes/enums/menu_action.dart';
 import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/services/crud/notes_Service.dart';
 import 'package:mynotes/utilities/dialogs/logout_dialog.dart';
-import 'package:mynotes/views/notes/new_note_view.dart';
 import 'package:mynotes/views/notes/notes_list_view.dart';
-import 'package:sqflite/sqflite.dart';
 
 class NotesView extends StatefulWidget {
   const NotesView({super.key});
@@ -33,7 +31,7 @@ class _NotesViewState extends State<NotesView> {
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context).pushNamed(newNoteRoute);
+              Navigator.of(context).pushNamed(createOrUpdateNoteRoutes);
             },
             icon: const Icon(Icons.add),
           ),
@@ -42,12 +40,14 @@ class _NotesViewState extends State<NotesView> {
               switch (value) {
                 case MenuAction.logout:
                   final shouldLogOut = await showLogOutDialog(context);
-                  if (shouldLogOut) {
+                  if (shouldLogOut && context.mounted) {
                     await AuthService.firebase().logOut();
-                    Navigator.of(context).restorablePushNamedAndRemoveUntil(
-                      loginRoutes,
-                      (_) => false,
-                    );
+                    if (context.mounted) {
+                      Navigator.of(context).restorablePushNamedAndRemoveUntil(
+                        loginRoutes,
+                        (_) => false,
+                      );
+                    }
                   }
               }
             },
@@ -62,36 +62,43 @@ class _NotesViewState extends State<NotesView> {
           ),
         ],
       ),
-      body: FutureBuilder(
+      body: FutureBuilder<DatabaseUser>(
         future: _notesService.getOrCreateUser(email: userEmail),
         builder: (context, snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.done:
-              return StreamBuilder(
-                stream: _notesService.allNote,
-                builder: (context, snapshot) {
-                  switch (snapshot.connectionState) {
-                    case ConnectionState.waiting:
-                    case ConnectionState.active:
-                      if (snapshot.hasData) {
-                        final allNotes = snapshot.data as List<DatabaseNote>;
-                        return NoteListView(
-                          notes: allNotes,
-                          onDeleteNote: (note) async {
-                            await _notesService.deleteNote(id: note.id);
-                          },
-                        );
-                      } else {
-                        return CircularProgressIndicator();
-                      }
-                    default:
-                      return const CircularProgressIndicator();
-                  }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Could not load notes: ${snapshot.error}'),
+            );
+          }
+
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return StreamBuilder<List<DatabaseNote>>(
+            stream: _notesService.allNote,
+            initialData: const [],
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Could not load notes: ${snapshot.error}'),
+                );
+              }
+
+              final allNotes = snapshot.data ?? const <DatabaseNote>[];
+              return NoteListView(
+                notes: allNotes,
+                onDeleteNote: (note) async {
+                  await _notesService.deleteNote(id: note.id);
+                },
+                onTap: (note) {
+                  Navigator.of(
+                    context,
+                  ).pushNamed(createOrUpdateNoteRoutes, arguments: note);
                 },
               );
-            default:
-              return const CircularProgressIndicator();
-          }
+            },
+          );
         },
       ),
     );
